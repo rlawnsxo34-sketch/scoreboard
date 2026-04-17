@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대형 스코어보드</title>
+    <!-- Tailwind CSS (스타일링 용도) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 가독성이 좋은 굵은 폰트 적용 */
+        @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@500;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f172a; /* 어두운 배경으로 대비 극대화 */
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .display-font {
+            font-family: 'Black Han Sans', sans-serif;
+        }
+
+        /* 점수 입력 필드 스타일 초기화 및 대형화 */
+        .score-input {
+            font-family: 'Black Han Sans', sans-serif;
+            background: transparent;
+            border: none;
+            outline: none;
+            text-align: center;
+            width: 100%;
+            transition: all 0.15s ease-out;
+            -moz-appearance: textfield; /* 파이어폭스 화살표 제거 */
+        }
+
+        /* 크롬, 사파리 등에서 숫자 입력 화살표(스피너) 제거 */
+        .score-input::-webkit-outer-spin-button,
+        .score-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* 반응형 텍스트 크기 조절 */
+        @media (max-width: 768px) {
+            .score-input { font-size: 8rem; line-height: 1; }
+        }
+        @media (min-width: 769px) {
+            .score-input { font-size: 16rem; line-height: 1; }
+        }
+        @media (min-width: 1200px) {
+            .score-input { font-size: 24rem; line-height: 1; }
+        }
+        
+        /* 버튼 눌림 효과 */
+        .push-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 0 transparent !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen w-screen flex flex-col md:flex-row relative">
+
+    <!-- 중앙 초기화 버튼 -->
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+        <button onclick="resetScores()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 px-6 rounded-full text-lg font-bold shadow-lg border border-gray-600 transition-colors">
+            0 : 0 초기화
+        </button>
+    </div>
+
+    <!-- 팀 1 (포이팀) -->
+    <div class="flex-1 flex flex-col justify-between items-center p-6 border-b-4 md:border-b-0 md:border-r-4 border-gray-800 relative group pt-20 md:pt-6">
+        <!-- 배경 장식 (은은한 빛) -->
+        <div class="absolute inset-0 bg-red-600/5 opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+
+        <!-- 팀 이름 입력란 -->
+        <input type="text" id="team1-name" value="포이팀"
+               class="display-font text-5xl md:text-7xl text-center bg-transparent border-b-4 border-transparent focus:border-red-500 hover:border-gray-700 transition-colors w-11/12 outline-none text-red-400 z-10 py-2"
+               onblur="checkDefaultName(this, '포이팀')">
+
+        <!-- 점수 표시 및 입력란 -->
+        <div class="flex-1 flex items-center justify-center w-full z-10 py-8">
+            <input type="number" id="team1-score" value="0"
+                   class="score-input text-white"
+                   onclick="this.select()"
+                   onblur="handleScoreBlur('team1-score')">
+        </div>
+
+        <!-- 점수 조작 버튼 -->
+        <div class="w-full max-w-xl flex flex-col gap-3 z-10">
+            <div class="flex gap-3 w-full">
+                <button onclick="updateScore('team1', 1)" class="push-btn flex-1 bg-red-600 hover:bg-red-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(153,27,27)] transition-all">+1</button>
+                <button onclick="updateScore('team1', 10)" class="push-btn flex-1 bg-red-600 hover:bg-red-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(153,27,27)] transition-all">+10</button>
+                <button onclick="updateScore('team1', 100)" class="push-btn flex-1 bg-red-600 hover:bg-red-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(153,27,27)] transition-all">+100</button>
+            </div>
+            <!-- 마이너스 버튼 (작게 배치) -->
+            <div class="flex gap-3 w-full opacity-40 hover:opacity-100 transition-opacity">
+                <button onclick="updateScore('team1', -1)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-1</button>
+                <button onclick="updateScore('team1', -10)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-10</button>
+                <button onclick="updateScore('team1', -100)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-100</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 팀 2 (마리팀) -->
+    <div class="flex-1 flex flex-col justify-between items-center p-6 relative group pt-20 md:pt-6">
+        <!-- 배경 장식 (은은한 빛) -->
+        <div class="absolute inset-0 bg-blue-600/5 opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+
+        <!-- 팀 이름 입력란 -->
+        <input type="text" id="team2-name" value="마리팀"
+               class="display-font text-5xl md:text-7xl text-center bg-transparent border-b-4 border-transparent focus:border-blue-500 hover:border-gray-700 transition-colors w-11/12 outline-none text-blue-400 z-10 py-2"
+               onblur="checkDefaultName(this, '마리팀')">
+
+        <!-- 점수 표시 및 입력란 -->
+        <div class="flex-1 flex items-center justify-center w-full z-10 py-8">
+            <input type="number" id="team2-score" value="0"
+                   class="score-input text-white"
+                   onclick="this.select()"
+                   onblur="handleScoreBlur('team2-score')">
+        </div>
+
+        <!-- 점수 조작 버튼 -->
+        <div class="w-full max-w-xl flex flex-col gap-3 z-10">
+            <div class="flex gap-3 w-full">
+                <button onclick="updateScore('team2', 1)" class="push-btn flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(30,64,175)] transition-all">+1</button>
+                <button onclick="updateScore('team2', 10)" class="push-btn flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(30,64,175)] transition-all">+10</button>
+                <button onclick="updateScore('team2', 100)" class="push-btn flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(30,64,175)] transition-all">+100</button>
+            </div>
+            <!-- 마이너스 버튼 (작게 배치) -->
+            <div class="flex gap-3 w-full opacity-40 hover:opacity-100 transition-opacity">
+                <button onclick="updateScore('team2', -1)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-1</button>
+                <button onclick="updateScore('team2', -10)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-10</button>
+                <button onclick="updateScore('team2', -100)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-100</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 점수 업데이트 함수
+        function updateScore(teamId, amount) {
+            const scoreInput = document.getElementById(`${teamId}-score`);
+            let currentScore = parseInt(scoreInput.value, 10);
+            
+            // 숫자가 아닌 값이 들어있으면 0으로 초기화
+            if (isNaN(currentScore)) currentScore = 0;
+            
+            currentScore += amount;
+            
+            // 점수가 0 미만으로 떨어지지 않도록 설정 (필요시 삭제 가능)
+            if (currentScore < 0) currentScore = 0; 
+            
+            scoreInput.value = currentScore;
+
+            // 시각적인 피드백 (스케일업 효과)
+            scoreInput.classList.add('scale-110');
+            if (teamId === 'team1') {
+                scoreInput.classList.add('text-red-200');
+            } else {
+                scoreInput.classList.add('text-blue-200');
+            }
+
+            setTimeout(() => {
+                scoreInput.classList.remove('scale-110', 'text-red-200', 'text-blue-200');
+            }, 150);
+        }
+
+        // 직접 입력 후 빈 칸이거나 문자가 들어갔을 때 0으로 복구
+        function handleScoreBlur(inputId) {
+            const input = document.getElementById(inputId);
+            if (input.value.trim() === '' || isNaN(input.value)) {
+                input.value = '0';
+            }
+        }
+
+        // 팀 이름을 비우고 포커스가 해제되면 기본 팀명으로 복구
+        function checkDefaultName(inputElement, defaultName) {
+            if (inputElement.value.trim() === '') {
+                inputElement.value = defaultName;
+            }
+        }
+
+        // 양팀 점수 초기화
+        function resetScores() {
+            const score1 = document.getElementById('team1-score');
+            const score2 = document.getElementById('team2-score');
+            score1.value = '0';
+            score2.value = '0';
+            
+            // 초기화 애니메이션
+            score1.classList.add('scale-75', 'opacity-50');
+            score2.classList.add('scale-75', 'opacity-50');
+            setTimeout(() => {
+                score1.classList.remove('scale-75', 'opacity-50');
+                score2.classList.remove('scale-75', 'opacity-50');
+            }, 200);
+        }
+    </script>
+</body>
+</html>
