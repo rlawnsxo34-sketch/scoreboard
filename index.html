@@ -3,25 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>대형 스코어보드</title>
-    <!-- Tailwind CSS (스타일링 용도) -->
+    <title>다중 팀 대형 스코어보드</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 가독성이 좋은 굵은 폰트 적용 */
         @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@500;700;900&display=swap');
 
         body {
             font-family: 'Noto Sans KR', sans-serif;
-            background-color: #0f172a; /* 어두운 배경으로 대비 극대화 */
+            background-color: #0f172a; /* 어두운 배경 */
             color: #f8fafc;
             overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .display-font {
             font-family: 'Black Han Sans', sans-serif;
         }
 
-        /* 점수 입력 필드 스타일 초기화 및 대형화 */
+        /* 점수 입력 필드 */
         .score-input {
             font-family: 'Black Han Sans', sans-serif;
             background: transparent;
@@ -30,170 +32,210 @@
             text-align: center;
             width: 100%;
             transition: all 0.15s ease-out;
-            -moz-appearance: textfield; /* 파이어폭스 화살표 제거 */
+            -moz-appearance: textfield;
+            /* 화면 크기나 팀 개수에 따라 글자 크기 유동적 조절 */
+            font-size: clamp(5rem, 12vw, 15rem); 
+            line-height: 1;
         }
 
-        /* 크롬, 사파리 등에서 숫자 입력 화살표(스피너) 제거 */
         .score-input::-webkit-outer-spin-button,
         .score-input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
         }
 
-        /* 반응형 텍스트 크기 조절 */
-        @media (max-width: 768px) {
-            .score-input { font-size: 8rem; line-height: 1; }
-        }
-        @media (min-width: 769px) {
-            .score-input { font-size: 16rem; line-height: 1; }
-        }
-        @media (min-width: 1200px) {
-            .score-input { font-size: 24rem; line-height: 1; }
-        }
-        
         /* 버튼 눌림 효과 */
         .push-btn:active {
             transform: translateY(4px);
             box-shadow: 0 0px 0 0 transparent !important;
         }
+
+        /* 그리드 애니메이션 부드럽게 */
+        #scoreboard-container {
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
-<body class="min-h-screen w-screen flex flex-col md:flex-row relative">
+<body class="p-4 md:p-8 pt-24 md:pt-24">
 
-    <!-- 중앙 초기화 버튼 -->
-    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-20">
-        <button onclick="resetScores()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 px-6 rounded-full text-lg font-bold shadow-lg border border-gray-600 transition-colors">
+    <!-- 상단 컨트롤 패널 -->
+    <div class="fixed top-0 left-0 w-full p-4 flex justify-center gap-2 md:gap-4 z-50 bg-[#0f172a] border-b border-gray-800 shadow-xl">
+        <button onclick="removeTeam()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 px-4 md:px-6 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-2">
+            <span class="text-xl leading-none">-</span> 팀 삭제
+        </button>
+        <button onclick="resetScores()" class="bg-slate-700 hover:bg-slate-600 text-white py-2 px-6 md:px-8 rounded-full text-lg font-bold shadow-lg border border-slate-500 transition-colors">
             0 : 0 초기화
+        </button>
+        <button onclick="addTeam()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 px-4 md:px-6 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-2">
+            <span class="text-xl leading-none">+</span> 팀 추가
         </button>
     </div>
 
-    <!-- 팀 1 (포이팀) -->
-    <div class="flex-1 flex flex-col justify-between items-center p-6 border-b-4 md:border-b-0 md:border-r-4 border-gray-800 relative group pt-20 md:pt-6">
-        <!-- 배경 장식 (은은한 빛) -->
-        <div class="absolute inset-0 bg-red-600/5 opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-
-        <!-- 팀 이름 입력란 -->
-        <input type="text" id="team1-name" value="포이팀"
-               class="display-font text-5xl md:text-7xl text-center bg-transparent border-b-4 border-transparent focus:border-red-500 hover:border-gray-700 transition-colors w-11/12 outline-none text-red-400 z-10 py-2"
-               onblur="checkDefaultName(this, '포이팀')">
-
-        <!-- 점수 표시 및 입력란 -->
-        <div class="flex-1 flex items-center justify-center w-full z-10 py-8">
-            <input type="number" id="team1-score" value="0"
-                   class="score-input text-white"
-                   onclick="this.select()"
-                   onblur="handleScoreBlur('team1-score')">
-        </div>
-
-        <!-- 점수 조작 버튼 -->
-        <div class="w-full max-w-xl flex flex-col gap-3 z-10">
-            <div class="flex gap-3 w-full">
-                <button onclick="updateScore('team1', 1)" class="push-btn flex-1 bg-red-600 hover:bg-red-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(153,27,27)] transition-all">+1</button>
-                <button onclick="updateScore('team1', 10)" class="push-btn flex-1 bg-red-600 hover:bg-red-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(153,27,27)] transition-all">+10</button>
-                <button onclick="updateScore('team1', 100)" class="push-btn flex-1 bg-red-600 hover:bg-red-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(153,27,27)] transition-all">+100</button>
-            </div>
-            <!-- 마이너스 버튼 (작게 배치) -->
-            <div class="flex gap-3 w-full opacity-40 hover:opacity-100 transition-opacity">
-                <button onclick="updateScore('team1', -1)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-1</button>
-                <button onclick="updateScore('team1', -10)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-10</button>
-                <button onclick="updateScore('team1', -100)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-100</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 팀 2 (마리팀) -->
-    <div class="flex-1 flex flex-col justify-between items-center p-6 relative group pt-20 md:pt-6">
-        <!-- 배경 장식 (은은한 빛) -->
-        <div class="absolute inset-0 bg-blue-600/5 opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-
-        <!-- 팀 이름 입력란 -->
-        <input type="text" id="team2-name" value="마리팀"
-               class="display-font text-5xl md:text-7xl text-center bg-transparent border-b-4 border-transparent focus:border-blue-500 hover:border-gray-700 transition-colors w-11/12 outline-none text-blue-400 z-10 py-2"
-               onblur="checkDefaultName(this, '마리팀')">
-
-        <!-- 점수 표시 및 입력란 -->
-        <div class="flex-1 flex items-center justify-center w-full z-10 py-8">
-            <input type="number" id="team2-score" value="0"
-                   class="score-input text-white"
-                   onclick="this.select()"
-                   onblur="handleScoreBlur('team2-score')">
-        </div>
-
-        <!-- 점수 조작 버튼 -->
-        <div class="w-full max-w-xl flex flex-col gap-3 z-10">
-            <div class="flex gap-3 w-full">
-                <button onclick="updateScore('team2', 1)" class="push-btn flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(30,64,175)] transition-all">+1</button>
-                <button onclick="updateScore('team2', 10)" class="push-btn flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(30,64,175)] transition-all">+10</button>
-                <button onclick="updateScore('team2', 100)" class="push-btn flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 md:py-6 text-4xl md:text-5xl font-bold rounded-2xl shadow-[0_6px_0_rgb(30,64,175)] transition-all">+100</button>
-            </div>
-            <!-- 마이너스 버튼 (작게 배치) -->
-            <div class="flex gap-3 w-full opacity-40 hover:opacity-100 transition-opacity">
-                <button onclick="updateScore('team2', -1)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-1</button>
-                <button onclick="updateScore('team2', -10)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-10</button>
-                <button onclick="updateScore('team2', -100)" class="push-btn flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 text-2xl font-bold rounded-xl shadow-[0_4px_0_rgb(31,41,55)]">-100</button>
-            </div>
-        </div>
+    <!-- 스코어보드 메인 영역 (Grid로 반응형 배치) -->
+    <div id="scoreboard-container" class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-[1920px] mx-auto h-full">
+        <!-- JS로 팀 카드들이 생성되는 곳 -->
     </div>
 
     <script>
-        // 점수 업데이트 함수
-        function updateScore(teamId, amount) {
-            const scoreInput = document.getElementById(`${teamId}-score`);
-            let currentScore = parseInt(scoreInput.value, 10);
-            
-            // 숫자가 아닌 값이 들어있으면 0으로 초기화
-            if (isNaN(currentScore)) currentScore = 0;
-            
-            currentScore += amount;
-            
-            // 점수가 0 미만으로 떨어지지 않도록 설정 (필요시 삭제 가능)
-            if (currentScore < 0) currentScore = 0; 
-            
-            scoreInput.value = currentScore;
+        // 팀 색상 팔레트 정의 (팀이 추가될 때마다 순서대로 적용)
+        const palettes = [
+            { hex: '#ef4444', darkHex: '#991b1b', bgHex: 'rgba(239, 68, 68, 0.05)' },   // Red (포이팀)
+            { hex: '#3b82f6', darkHex: '#1e40af', bgHex: 'rgba(59, 130, 246, 0.05)' },   // Blue (마리팀)
+            { hex: '#22c55e', darkHex: '#166534', bgHex: 'rgba(34, 197, 94, 0.05)' },    // Green
+            { hex: '#eab308', darkHex: '#854d0e', bgHex: 'rgba(234, 179, 8, 0.05)' },    // Yellow
+            { hex: '#a855f7', darkHex: '#6b21a8', bgHex: 'rgba(168, 85, 247, 0.05)' },   // Purple
+            { hex: '#f97316', darkHex: '#9a3412', bgHex: 'rgba(249, 115, 22, 0.05)' },   // Orange
+            { hex: '#ec4899', darkHex: '#9d174d', bgHex: 'rgba(236, 72, 153, 0.05)' },   // Pink
+            { hex: '#06b6d4', darkHex: '#155e75', bgHex: 'rgba(6, 182, 212, 0.05)' }     // Cyan
+        ];
 
-            // 시각적인 피드백 (스케일업 효과)
-            scoreInput.classList.add('scale-110');
-            if (teamId === 'team1') {
-                scoreInput.classList.add('text-red-200');
-            } else {
-                scoreInput.classList.add('text-blue-200');
-            }
+        // 초기 팀 데이터 (2팀 기본)
+        let teams = [
+            { id: 1, name: '포이팀', score: 0 },
+            { id: 2, name: '마리팀', score: 0 }
+        ];
 
-            setTimeout(() => {
-                scoreInput.classList.remove('scale-110', 'text-red-200', 'text-blue-200');
-            }, 150);
+        let nextTeamId = 3;
+
+        // UI 렌더링 함수
+        function renderTeams() {
+            const container = document.getElementById('scoreboard-container');
+            container.innerHTML = '';
+
+            // 팀 개수에 따라 그리드 열(Column) 개수 동적 조정
+            if (teams.length === 1) container.className = "flex-1 grid grid-cols-1 gap-6 w-full max-w-[1920px] mx-auto h-full";
+            else if (teams.length === 2) container.className = "flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-[1920px] mx-auto h-full";
+            else if (teams.length === 3) container.className = "flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[1920px] mx-auto h-full";
+            else if (teams.length === 4) container.className = "flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-[1920px] mx-auto h-full";
+            else container.className = "flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-[1920px] mx-auto h-full";
+
+            teams.forEach((team, index) => {
+                const p = palettes[index % palettes.length]; // 팔레트 순환 배정
+                
+                // 팀 기본 이름 설정 (포이, 마리, 그 이후는 팀 3, 팀 4...)
+                const defaultName = index === 0 ? '포이팀' : (index === 1 ? '마리팀' : `팀 ${index + 1}`);
+
+                const cardHTML = `
+                    <div class="flex-1 flex flex-col justify-between items-center p-6 rounded-3xl relative group border-t-8 shadow-2xl"
+                         style="background-color: #1e293b; border-color: ${p.hex}; box-shadow: inset 0 0 100px ${p.bgHex};">
+                        
+                        <!-- 팀 이름 입력란 -->
+                        <input type="text" value="${team.name}" 
+                               placeholder="${defaultName}"
+                               class="display-font text-4xl md:text-5xl lg:text-6xl text-center bg-transparent border-b-4 border-transparent focus:outline-none w-11/12 py-2 z-10 transition-colors"
+                               style="color: ${p.hex}; border-bottom-color: rgba(255,255,255,0.05);"
+                               onfocus="this.style.borderBottomColor = '${p.hex}'"
+                               onblur="handleNameBlur(${team.id}, this, '${defaultName}')"
+                               onchange="updateTeamName(${team.id}, this.value)">
+
+                        <!-- 점수 표시 및 입력란 -->
+                        <div class="flex-1 flex items-center justify-center w-full z-10 py-6 my-4">
+                            <input type="number" id="score-input-${team.id}" value="${team.score}"
+                                   class="score-input text-white"
+                                   onclick="this.select()"
+                                   onblur="handleScoreBlur(${team.id}, this)"
+                                   onchange="updateScoreDirect(${team.id}, this.value)">
+                        </div>
+
+                        <!-- 점수 조작 버튼 -->
+                        <div class="w-full max-w-sm flex flex-col gap-3 z-10">
+                            <div class="flex gap-2 md:gap-3 w-full">
+                                <button onclick="modifyScore(${team.id}, 1)" class="push-btn flex-1 text-white py-3 md:py-5 text-2xl md:text-4xl font-bold rounded-2xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 6px 0 ${p.darkHex}">+1</button>
+                                <button onclick="modifyScore(${team.id}, 10)" class="push-btn flex-1 text-white py-3 md:py-5 text-2xl md:text-4xl font-bold rounded-2xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 6px 0 ${p.darkHex}">+10</button>
+                                <button onclick="modifyScore(${team.id}, 100)" class="push-btn flex-1 text-white py-3 md:py-5 text-2xl md:text-4xl font-bold rounded-2xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 6px 0 ${p.darkHex}">+100</button>
+                            </div>
+                            <div class="flex gap-2 md:gap-3 w-full opacity-40 hover:opacity-100 transition-opacity">
+                                <button onclick="modifyScore(${team.id}, -1)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 text-xl font-bold rounded-xl shadow-[0_4px_0_rgb(51,65,85)]">-1</button>
+                                <button onclick="modifyScore(${team.id}, -10)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 text-xl font-bold rounded-xl shadow-[0_4px_0_rgb(51,65,85)]">-10</button>
+                                <button onclick="modifyScore(${team.id}, -100)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 text-xl font-bold rounded-xl shadow-[0_4px_0_rgb(51,65,85)]">-100</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', cardHTML);
+            });
         }
 
-        // 직접 입력 후 빈 칸이거나 문자가 들어갔을 때 0으로 복구
-        function handleScoreBlur(inputId) {
-            const input = document.getElementById(inputId);
-            if (input.value.trim() === '' || isNaN(input.value)) {
-                input.value = '0';
+        // 버튼으로 점수 변경
+        function modifyScore(id, amount) {
+            const team = teams.find(t => t.id === id);
+            if (team) {
+                team.score += amount;
+                if (team.score < 0) team.score = 0; // 마이너스 방지 원할시 유지
+                
+                const inputElement = document.getElementById(`score-input-${id}`);
+                inputElement.value = team.score;
+                
+                // 스케일업 애니메이션
+                inputElement.style.transform = 'scale(1.1)';
+                setTimeout(() => inputElement.style.transform = 'scale(1)', 150);
             }
         }
 
-        // 팀 이름을 비우고 포커스가 해제되면 기본 팀명으로 복구
-        function checkDefaultName(inputElement, defaultName) {
+        // 직접 입력으로 점수 변경
+        function updateScoreDirect(id, value) {
+            const team = teams.find(t => t.id === id);
+            let parsed = parseInt(value, 10);
+            if (isNaN(parsed)) parsed = 0;
+            if (parsed < 0) parsed = 0;
+            
+            if (team) {
+                team.score = parsed;
+                document.getElementById(`score-input-${id}`).value = team.score;
+            }
+        }
+
+        // 점수 입력창 포커스 아웃 처리
+        function handleScoreBlur(id, inputElement) {
+            if (inputElement.value.trim() === '' || isNaN(inputElement.value)) {
+                updateScoreDirect(id, 0);
+            }
+        }
+
+        // 팀명 변경
+        function updateTeamName(id, value) {
+            const team = teams.find(t => t.id === id);
+            if (team) team.name = value;
+        }
+
+        // 팀명 포커스 아웃 (비어있으면 기본값 복구)
+        function handleNameBlur(id, inputElement, defaultName) {
+            inputElement.style.borderBottomColor = 'rgba(255,255,255,0.05)';
             if (inputElement.value.trim() === '') {
                 inputElement.value = defaultName;
+                updateTeamName(id, defaultName);
             }
         }
 
-        // 양팀 점수 초기화
-        function resetScores() {
-            const score1 = document.getElementById('team1-score');
-            const score2 = document.getElementById('team2-score');
-            score1.value = '0';
-            score2.value = '0';
-            
-            // 초기화 애니메이션
-            score1.classList.add('scale-75', 'opacity-50');
-            score2.classList.add('scale-75', 'opacity-50');
-            setTimeout(() => {
-                score1.classList.remove('scale-75', 'opacity-50');
-                score2.classList.remove('scale-75', 'opacity-50');
-            }, 200);
+        // 팀 추가 (최대 8팀 제한)
+        function addTeam() {
+            if (teams.length >= 8) {
+                alert('팀은 최대 8팀까지만 추가 가능합니다.');
+                return;
+            }
+            teams.push({ id: nextTeamId++, name: `팀 ${teams.length + 1}`, score: 0 });
+            renderTeams();
         }
+
+        // 팀 삭제 (최소 1팀 유지)
+        function removeTeam() {
+            if (teams.length > 1) {
+                teams.pop();
+                renderTeams();
+            } else {
+                alert('최소 1개의 팀은 있어야 합니다.');
+            }
+        }
+
+        // 모든 점수 초기화
+        function resetScores() {
+            teams.forEach(t => t.score = 0);
+            renderTeams();
+        }
+
+        // 초기 화면 렌더링
+        window.onload = renderTeams;
+
     </script>
 </body>
 </html>
