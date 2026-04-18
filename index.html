@@ -33,8 +33,6 @@
             width: 100%;
             transition: all 0.15s ease-out;
             -moz-appearance: textfield;
-            /* 화면 크기나 팀 개수에 따라 글자 크기 유동적 조절 */
-            font-size: clamp(5rem, 12vw, 15rem); 
             line-height: 1;
         }
 
@@ -56,7 +54,12 @@
         }
     </style>
 </head>
-<body class="p-4 md:p-8 pt-24 md:pt-24">
+<body class="p-2 md:p-4 pt-20 md:pt-24 h-screen overflow-y-auto md:overflow-hidden flex flex-col">
+
+    <!-- 토스트 메시지 (alert 대체용) -->
+    <div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-full shadow-lg transform -translate-y-20 opacity-0 transition-all duration-300 z-[60] pointer-events-none font-bold text-center">
+        메시지
+    </div>
 
     <!-- 상단 컨트롤 패널 -->
     <div class="fixed top-0 left-0 w-full p-4 flex justify-center gap-2 md:gap-4 z-50 bg-[#0f172a] border-b border-gray-800 shadow-xl">
@@ -97,57 +100,85 @@
 
         let nextTeamId = 3;
 
+        // 토스트 메시지 표시 함수 (코드 안정성 및 사용자 경험 향상)
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('-translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('-translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
         // UI 렌더링 함수
         function renderTeams() {
             const container = document.getElementById('scoreboard-container');
             container.innerHTML = '';
 
-            // 팀 개수에 따라 그리드 열(Column) 개수 동적 조정
-            if (teams.length === 1) container.className = "flex-1 grid grid-cols-1 gap-6 w-full max-w-[1920px] mx-auto h-full";
-            else if (teams.length === 2) container.className = "flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-[1920px] mx-auto h-full";
-            else if (teams.length === 3) container.className = "flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[1920px] mx-auto h-full";
-            else if (teams.length === 4) container.className = "flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-[1920px] mx-auto h-full";
-            else container.className = "flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-[1920px] mx-auto h-full";
+            const isDense = teams.length > 4; // 5팀 이상일 경우 화면 분할(Dense) 모드
+
+            // 팀 개수에 따라 그리드 열(Column) 개수 및 화면 높이 꽉 차는 비율(auto-rows-fr) 동적 조정
+            let gridClasses = "flex-1 w-full max-w-[1920px] mx-auto h-full grid gap-3 md:gap-6 auto-rows-fr ";
+            if (teams.length === 1) gridClasses += "grid-cols-1";
+            else if (teams.length === 2) gridClasses += "grid-cols-1 md:grid-cols-2";
+            else if (teams.length === 3) gridClasses += "grid-cols-1 md:grid-cols-3";
+            else if (teams.length === 4) gridClasses += "grid-cols-1 md:grid-cols-2 lg:grid-cols-4";
+            else if (teams.length <= 6) gridClasses += "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"; // 5~6팀: 2줄 3칸
+            else gridClasses += "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"; // 7~8팀: 2줄 4칸
+            
+            container.className = gridClasses;
 
             teams.forEach((team, index) => {
                 const p = palettes[index % palettes.length]; // 팔레트 순환 배정
                 
-                // 팀 기본 이름 설정 (포이, 마리, 그 이후는 팀 3, 팀 4...)
+                // 팀 기본 이름 설정
                 const defaultName = index === 0 ? '포이팀' : (index === 1 ? '마리팀' : `팀 ${index + 1}`);
 
+                // 팀 갯수가 많을 때(5개 이상) 한 화면에 다 들어가도록 UI 폰트, 여백, 버튼 크기를 동적으로 축소 (버튼 깨짐 방지 비율 조정)
+                const cardPadding = isDense ? 'p-2 md:p-3' : 'p-6';
+                const nameSize = isDense ? 'text-2xl md:text-3xl lg:text-4xl' : 'text-4xl md:text-5xl lg:text-6xl';
+                const scoreSize = isDense ? 'text-[3.5rem] sm:text-[4rem] lg:text-[5.5rem]' : 'text-[5rem] sm:text-[10rem] lg:text-[13rem]';
+                const pyButton = isDense ? 'py-1.5 md:py-2' : 'py-3 md:py-5';
+                const btnText = isDense ? 'text-sm sm:text-base md:text-lg lg:text-xl' : 'text-2xl md:text-4xl';
+                const minusPy = isDense ? 'py-1' : 'py-2';
+                const minusText = isDense ? 'text-xs md:text-sm' : 'text-xl';
+                const myMargin = isDense ? 'my-0' : 'my-4';
+
                 const cardHTML = `
-                    <div class="flex-1 flex flex-col justify-between items-center p-6 rounded-3xl relative group border-t-8 shadow-2xl"
+                    <div class="flex-1 flex flex-col justify-between items-center ${cardPadding} rounded-3xl relative group border-t-8 shadow-2xl overflow-hidden min-h-[150px]"
                          style="background-color: #1e293b; border-color: ${p.hex}; box-shadow: inset 0 0 100px ${p.bgHex};">
                         
                         <!-- 팀 이름 입력란 -->
                         <input type="text" value="${team.name}" 
                                placeholder="${defaultName}"
-                               class="display-font text-4xl md:text-5xl lg:text-6xl text-center bg-transparent border-b-4 border-transparent focus:outline-none w-11/12 py-2 z-10 transition-colors"
+                               class="display-font ${nameSize} text-center bg-transparent border-b-4 border-transparent focus:outline-none w-11/12 py-1 z-10 transition-colors"
                                style="color: ${p.hex}; border-bottom-color: rgba(255,255,255,0.05);"
                                onfocus="this.style.borderBottomColor = '${p.hex}'"
                                onblur="handleNameBlur(${team.id}, this, '${defaultName}')"
                                onchange="updateTeamName(${team.id}, this.value)">
 
                         <!-- 점수 표시 및 입력란 -->
-                        <div class="flex-1 flex items-center justify-center w-full z-10 py-6 my-4">
+                        <div class="flex-1 flex items-center justify-center w-full z-10 ${myMargin}">
                             <input type="number" id="score-input-${team.id}" value="${team.score}"
-                                   class="score-input text-white"
+                                   class="score-input text-white ${scoreSize}"
                                    onclick="this.select()"
                                    onblur="handleScoreBlur(${team.id}, this)"
                                    onchange="updateScoreDirect(${team.id}, this.value)">
                         </div>
 
                         <!-- 점수 조작 버튼 -->
-                        <div class="w-full max-w-sm flex flex-col gap-3 z-10">
-                            <div class="flex gap-2 md:gap-3 w-full">
-                                <button onclick="modifyScore(${team.id}, 1)" class="push-btn flex-1 text-white py-3 md:py-5 text-2xl md:text-4xl font-bold rounded-2xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 6px 0 ${p.darkHex}">+1</button>
-                                <button onclick="modifyScore(${team.id}, 10)" class="push-btn flex-1 text-white py-3 md:py-5 text-2xl md:text-4xl font-bold rounded-2xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 6px 0 ${p.darkHex}">+10</button>
-                                <button onclick="modifyScore(${team.id}, 100)" class="push-btn flex-1 text-white py-3 md:py-5 text-2xl md:text-4xl font-bold rounded-2xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 6px 0 ${p.darkHex}">+100</button>
+                        <div class="w-full max-w-sm flex flex-col gap-1 md:gap-2 z-10 shrink-0">
+                            <div class="flex gap-1 md:gap-2 w-full">
+                                <button onclick="modifyScore(${team.id}, 1)" class="push-btn flex-1 text-white ${pyButton} ${btnText} whitespace-nowrap font-bold rounded-lg md:rounded-xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 4px 0 ${p.darkHex}">+1</button>
+                                <button onclick="modifyScore(${team.id}, 10)" class="push-btn flex-1 text-white ${pyButton} ${btnText} whitespace-nowrap font-bold rounded-lg md:rounded-xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 4px 0 ${p.darkHex}">+10</button>
+                                <button onclick="modifyScore(${team.id}, 100)" class="push-btn flex-1 text-white ${pyButton} ${btnText} whitespace-nowrap font-bold rounded-lg md:rounded-xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 4px 0 ${p.darkHex}">+100</button>
                             </div>
-                            <div class="flex gap-2 md:gap-3 w-full opacity-40 hover:opacity-100 transition-opacity">
-                                <button onclick="modifyScore(${team.id}, -1)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 text-xl font-bold rounded-xl shadow-[0_4px_0_rgb(51,65,85)]">-1</button>
-                                <button onclick="modifyScore(${team.id}, -10)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 text-xl font-bold rounded-xl shadow-[0_4px_0_rgb(51,65,85)]">-10</button>
-                                <button onclick="modifyScore(${team.id}, -100)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 text-xl font-bold rounded-xl shadow-[0_4px_0_rgb(51,65,85)]">-100</button>
+                            <div class="flex gap-1 md:gap-2 w-full opacity-40 hover:opacity-100 transition-opacity">
+                                <button onclick="modifyScore(${team.id}, -1)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 ${minusPy} ${minusText} whitespace-nowrap font-bold rounded-md md:rounded-lg shadow-[0_3px_0_rgb(51,65,85)]">-1</button>
+                                <button onclick="modifyScore(${team.id}, -10)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 ${minusPy} ${minusText} whitespace-nowrap font-bold rounded-md md:rounded-lg shadow-[0_3px_0_rgb(51,65,85)]">-10</button>
+                                <button onclick="modifyScore(${team.id}, -100)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 ${minusPy} ${minusText} whitespace-nowrap font-bold rounded-md md:rounded-lg shadow-[0_3px_0_rgb(51,65,85)]">-100</button>
                             </div>
                         </div>
                     </div>
@@ -210,7 +241,7 @@
         // 팀 추가 (최대 8팀 제한)
         function addTeam() {
             if (teams.length >= 8) {
-                alert('팀은 최대 8팀까지만 추가 가능합니다.');
+                showToast('팀은 최대 8팀까지만 추가 가능합니다.');
                 return;
             }
             teams.push({ id: nextTeamId++, name: `팀 ${teams.length + 1}`, score: 0 });
@@ -223,7 +254,7 @@
                 teams.pop();
                 renderTeams();
             } else {
-                alert('최소 1개의 팀은 있어야 합니다.');
+                showToast('최소 1개의 팀은 있어야 합니다.');
             }
         }
 
