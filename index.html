@@ -46,8 +46,23 @@
             box-shadow: 0 0px 0 0 transparent !important;
         }
 
+        /* 모바일 환경 안정성: 버튼 더블탭 줌 방지 */
+        button {
+            touch-action: manipulation;
+        }
+
         #scoreboard-container {
             transition: all 0.3s ease;
+        }
+
+        /* 팀 카드 상단 헤더 색상 영역 */
+        .team-header {
+            width: 100%;
+            padding: 0.5rem 0;
+            text-align: center;
+            border-top-left-radius: 1.5rem; /* 카드 둥근 모서리와 맞춤 */
+            border-top-right-radius: 1.5rem;
+            opacity: 0.9;
         }
 
         /* 타이머 관련 스타일 */
@@ -74,46 +89,46 @@
         }
     </style>
 </head>
-<body class="p-2 md:p-4 pt-[140px] md:pt-[100px] h-screen overflow-y-auto md:overflow-hidden flex flex-col">
+<body class="p-2 md:p-4 pt-[130px] sm:pt-[140px] md:pt-[100px] h-[100dvh] overflow-y-auto md:overflow-hidden flex flex-col overscroll-none">
 
     <!-- 토스트 메시지 -->
-    <div id="toast" class="fixed top-32 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-full shadow-lg transform -translate-y-20 opacity-0 transition-all duration-300 z-[60] pointer-events-none font-bold text-center">
+    <div id="toast" class="fixed top-32 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-full shadow-lg transform -translate-y-20 opacity-0 transition-all duration-300 z-[60] pointer-events-none font-bold text-center w-[90%] md:w-auto max-w-md break-keep">
         메시지
     </div>
 
-    <!-- 상단 컨트롤 패널 & 타이머 -->
-    <div class="fixed top-0 left-0 w-full z-50 bg-[#0f172a] border-b border-gray-800 shadow-xl flex flex-col md:flex-row items-center justify-between p-2 md:p-4 gap-4">
+    <!-- 상단 컨트롤 패널 & 타이머 (모바일에서 여백 축소 및 크기 최적화) -->
+    <div class="fixed top-0 left-0 w-full z-50 bg-[#0f172a]/95 backdrop-blur-md border-b border-gray-800 shadow-xl flex flex-col md:flex-row items-center justify-between p-2 sm:p-3 md:p-4 gap-2 md:gap-4">
         
         <!-- 왼쪽: 팀 관리 -->
-        <div class="flex items-center gap-2 order-2 md:order-1">
-            <button onclick="removeTeam()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 px-3 md:py-2 md:px-5 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-1 text-sm md:text-base">
-                <span class="text-lg leading-none">-</span> 팀
+        <div class="flex items-center gap-1 sm:gap-2 order-2 md:order-1 w-full md:w-auto justify-center">
+            <button onclick="removeTeam()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 px-3 md:py-2 md:px-5 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-1 text-xs sm:text-sm md:text-base">
+                <span class="text-base md:text-lg leading-none">-</span> 팀
             </button>
-            <button onclick="addTeam()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 px-3 md:py-2 md:px-5 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-1 text-sm md:text-base">
-                <span class="text-lg leading-none">+</span> 팀
+            <button onclick="addTeam()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 px-3 md:py-2 md:px-5 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-1 text-xs sm:text-sm md:text-base">
+                <span class="text-base md:text-lg leading-none">+</span> 팀
             </button>
-            <button onclick="resetScores()" class="bg-slate-700 hover:bg-slate-600 text-white py-1.5 px-4 md:py-2 md:px-6 rounded-full font-bold shadow-lg border border-slate-500 transition-colors text-sm md:text-base ml-2">
+            <button onclick="resetScores()" class="bg-slate-700 hover:bg-slate-600 text-white py-1.5 px-3 sm:px-4 md:py-2 md:px-6 rounded-full font-bold shadow-lg border border-slate-500 transition-colors text-xs sm:text-sm md:text-base ml-1 sm:ml-2">
                 점수 리셋
             </button>
         </div>
 
         <!-- 중앙: 타이머 -->
-        <div class="flex items-center gap-3 bg-gray-900 px-4 md:px-6 py-2 rounded-2xl border border-gray-700 order-1 md:order-2">
-            <div id="timer-display" class="display-font text-4xl md:text-5xl text-yellow-400 flex items-center tracking-wider transition-colors">
+        <div class="flex items-center gap-2 sm:gap-3 bg-gray-900 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 rounded-2xl border border-gray-700 order-1 md:order-2">
+            <div id="timer-display" class="display-font text-3xl sm:text-4xl md:text-5xl text-yellow-400 flex items-center tracking-wider transition-colors">
                 <input type="number" id="timer-min" value="05" class="timer-input text-yellow-400 focus:bg-gray-800 focus:rounded" onclick="this.select()" onchange="formatTimerInput(this)" onblur="formatTimerInput(this)">
-                <span class="mx-1 pb-1">:</span>
+                <span class="mx-0.5 sm:mx-1 pb-1">:</span>
                 <input type="number" id="timer-sec" value="00" class="timer-input text-yellow-400 focus:bg-gray-800 focus:rounded" onclick="this.select()" onchange="formatTimerInput(this, true)" onblur="formatTimerInput(this, true)">
             </div>
-            <div class="flex gap-2 ml-2">
-                <button id="timer-toggle-btn" onclick="toggleTimer()" class="w-10 h-10 md:w-12 md:h-12 bg-yellow-600 hover:bg-yellow-500 rounded-full flex items-center justify-center text-white shadow-lg transition-colors">
+            <div class="flex gap-1 sm:gap-2 ml-1 sm:ml-2">
+                <button id="timer-toggle-btn" onclick="toggleTimer()" class="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-yellow-600 hover:bg-yellow-500 rounded-full flex items-center justify-center text-white shadow-lg transition-colors">
                     <!-- Play 아이콘 -->
-                    <svg id="icon-play" class="w-5 h-5 md:w-6 md:h-6 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg>
+                    <svg id="icon-play" class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg>
                     <!-- Pause 아이콘 (기본 숨김) -->
-                    <svg id="icon-pause" class="w-5 h-5 md:w-6 md:h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z"></path></svg>
+                    <svg id="icon-pause" class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z"></path></svg>
                 </button>
-                <button onclick="resetTimer()" class="w-10 h-10 md:w-12 md:h-12 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center text-white shadow-lg transition-colors">
+                <button onclick="resetTimer()" class="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center text-white shadow-lg transition-colors">
                     <!-- Stop/Reset 아이콘 -->
-                    <svg class="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path></svg>
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path></svg>
                 </button>
             </div>
         </div>
@@ -122,8 +137,8 @@
         <div class="hidden md:block w-[200px] order-3"></div>
     </div>
 
-    <!-- 스코어보드 메인 영역 -->
-    <div id="scoreboard-container" class="flex-1 w-full max-w-[1920px] mx-auto h-full grid gap-3 md:gap-6 auto-rows-fr grid-cols-1 md:grid-cols-2">
+    <!-- 스코어보드 메인 영역 (배율 및 오버플로우 안정성 개선) -->
+    <div id="scoreboard-container" class="flex-1 w-full max-w-[1920px] mx-auto h-full grid gap-3 md:gap-6 auto-rows-fr grid-cols-1 md:grid-cols-2 pb-4">
         <!-- JS로 렌더링 -->
     </div>
 
@@ -167,6 +182,9 @@
             let totalSeconds = m * 60 + s;
 
             if (totalSeconds <= 0) return;
+
+            // 안정성: 타이머 중복 실행을 막기 위해 기존 인터벌 확실히 정리
+            clearInterval(timerInterval);
 
             isTimerRunning = true;
             elMin.disabled = true;
@@ -246,13 +264,18 @@
         ];
 
         let nextTeamId = 3;
+        let toastTimeout = null; // 안정성: 토스트 메시지 겹침 방지용
 
         function showToast(message) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.classList.remove('-translate-y-20', 'opacity-0');
             toast.classList.add('translate-y-0', 'opacity-100');
-            setTimeout(() => {
+            
+            // 안정성: 기존 타이머가 있으면 취소 후 다시 세팅하여 연속 클릭 대응
+            if (toastTimeout) clearTimeout(toastTimeout);
+            
+            toastTimeout = setTimeout(() => {
                 toast.classList.remove('translate-y-0', 'opacity-100');
                 toast.classList.add('-translate-y-20', 'opacity-0');
             }, 2500);
@@ -264,13 +287,14 @@
 
             const isDense = teams.length > 4;
 
-            let gridClasses = "flex-1 w-full max-w-[1920px] mx-auto h-full grid gap-3 md:gap-6 auto-rows-fr ";
+            // 모바일 환경에서도 그리드가 너무 길어지지 않게 유지, 모바일(sm) 화면에서도 다수 팀 2단 배치 허용
+            let gridClasses = "flex-1 w-full max-w-[1920px] mx-auto h-full grid gap-3 md:gap-6 auto-rows-fr pb-4 ";
             if (teams.length === 1) gridClasses += "grid-cols-1";
             else if (teams.length === 2) gridClasses += "grid-cols-1 md:grid-cols-2";
             else if (teams.length === 3) gridClasses += "grid-cols-1 md:grid-cols-3";
             else if (teams.length === 4) gridClasses += "grid-cols-1 md:grid-cols-2 lg:grid-cols-4";
-            else if (teams.length <= 6) gridClasses += "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
-            else gridClasses += "grid-cols-1 md:grid-cols-2 lg:grid-cols-4";
+            else if (teams.length <= 6) gridClasses += "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+            else gridClasses += "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
             
             container.className = gridClasses;
 
@@ -278,45 +302,52 @@
                 const p = palettes[index % palettes.length];
                 const defaultName = index === 0 ? '포이팀' : (index === 1 ? '마리팀' : `팀 ${index + 1}`);
 
-                const cardPadding = isDense ? 'p-2 md:p-3' : 'p-6';
-                const nameSize = isDense ? 'text-2xl md:text-3xl lg:text-4xl' : 'text-4xl md:text-5xl lg:text-6xl';
-                const scoreSize = isDense ? 'text-[3.5rem] sm:text-[4rem] lg:text-[5.5rem]' : 'text-[5rem] sm:text-[10rem] lg:text-[13rem]';
-                const pyButton = isDense ? 'py-1.5 md:py-2' : 'py-3 md:py-5';
-                const btnText = isDense ? 'text-sm sm:text-base md:text-lg lg:text-xl' : 'text-2xl md:text-4xl';
-                const minusPy = isDense ? 'py-1' : 'py-2';
-                const minusText = isDense ? 'text-xs md:text-sm' : 'text-xl';
-                const myMargin = isDense ? 'my-0' : 'my-4';
+                // 모바일 해상도에서 버튼 텍스트가 깨지거나 점수가 너무 거대해지는 현상 방지
+                const cardPadding = isDense ? 'p-2 md:p-3' : 'p-3 md:p-6';
+                const nameSize = isDense ? 'text-2xl md:text-3xl lg:text-4xl' : 'text-3xl sm:text-4xl md:text-5xl lg:text-6xl';
+                const scoreSize = isDense ? 'text-[4rem] sm:text-[3.5rem] lg:text-[5.5rem]' : 'text-[6rem] sm:text-[5rem] md:text-[8rem] lg:text-[11rem]';
+                const pyButton = isDense ? 'py-1.5 md:py-2' : 'py-2 sm:py-3 md:py-4';
+                const btnText = isDense ? 'text-sm sm:text-base md:text-lg lg:text-xl' : 'text-lg sm:text-2xl md:text-3xl';
+                const minusPy = isDense ? 'py-1' : 'py-1.5 md:py-2';
+                const minusText = isDense ? 'text-xs md:text-sm' : 'text-sm sm:text-base md:text-xl';
+                const myMargin = isDense ? 'my-0' : 'my-1 md:my-2';
 
+                // 내부 패딩을 조정하여 헤더 영역 확보, 모바일에서 카드가 찌그러지지 않도록 min-h-[200px] 보장
                 const cardHTML = `
-                    <div class="flex-1 flex flex-col justify-between items-center ${cardPadding} rounded-3xl relative group border-t-8 shadow-2xl overflow-hidden min-h-[150px]"
-                         style="background-color: #1e293b; border-color: ${p.hex}; box-shadow: inset 0 0 100px ${p.bgHex};">
+                    <div class="flex-1 flex flex-col justify-between items-center rounded-3xl relative group shadow-2xl overflow-hidden min-h-[200px] md:min-h-[150px] border border-gray-700"
+                         style="background-color: #1e293b; box-shadow: inset 0 0 100px ${p.bgHex};">
                         
-                        <input type="text" value="${team.name}" 
-                               placeholder="${defaultName}"
-                               class="display-font ${nameSize} text-center bg-transparent border-b-4 border-transparent focus:outline-none w-11/12 py-1 z-10 transition-colors"
-                               style="color: ${p.hex}; border-bottom-color: rgba(255,255,255,0.05);"
-                               onfocus="this.style.borderBottomColor = '${p.hex}'"
-                               onblur="handleNameBlur(${team.id}, this, '${defaultName}')"
-                               onchange="updateTeamName(${team.id}, this.value)">
+                        <!-- 팀 컬러 헤더 띠 -->
+                        <div class="team-header shadow-md" style="background-color: ${p.hex};"></div>
 
-                        <div class="flex-1 flex items-center justify-center w-full z-10 ${myMargin}">
-                            <input type="number" id="score-input-${team.id}" value="${team.score}"
-                                   class="score-input text-white ${scoreSize}"
-                                   onclick="this.select()"
-                                   onblur="handleScoreBlur(${team.id}, this)"
-                                   onchange="updateScoreDirect(${team.id}, this.value)">
-                        </div>
+                        <div class="flex flex-col w-full h-full justify-between items-center ${cardPadding} pt-2">
+                            <input type="text" value="${team.name}" 
+                                   placeholder="${defaultName}"
+                                   class="display-font ${nameSize} text-center bg-transparent border-b-4 border-transparent focus:outline-none w-11/12 py-1 z-10 transition-colors"
+                                   style="color: ${p.hex}; border-bottom-color: rgba(255,255,255,0.05);"
+                                   onfocus="this.style.borderBottomColor = '${p.hex}'"
+                                   onblur="handleNameBlur(${team.id}, this, '${defaultName}')"
+                                   onchange="updateTeamName(${team.id}, this.value)">
 
-                        <div class="w-full max-w-sm flex flex-col gap-1 md:gap-2 z-10 shrink-0">
-                            <div class="flex gap-1 md:gap-2 w-full">
-                                <button onclick="modifyScore(${team.id}, 1)" class="push-btn flex-1 text-white ${pyButton} ${btnText} whitespace-nowrap font-bold rounded-lg md:rounded-xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 4px 0 ${p.darkHex}">+1</button>
-                                <button onclick="modifyScore(${team.id}, 10)" class="push-btn flex-1 text-white ${pyButton} ${btnText} whitespace-nowrap font-bold rounded-lg md:rounded-xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 4px 0 ${p.darkHex}">+10</button>
-                                <button onclick="modifyScore(${team.id}, 100)" class="push-btn flex-1 text-white ${pyButton} ${btnText} whitespace-nowrap font-bold rounded-lg md:rounded-xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 4px 0 ${p.darkHex}">+100</button>
+                            <div class="flex-1 flex items-center justify-center w-full z-10 ${myMargin}">
+                                <input type="number" id="score-input-${team.id}" value="${team.score}"
+                                       class="score-input text-white ${scoreSize}"
+                                       onclick="this.select()"
+                                       onblur="handleScoreBlur(${team.id}, this)"
+                                       onchange="updateScoreDirect(${team.id}, this.value)">
                             </div>
-                            <div class="flex gap-1 md:gap-2 w-full opacity-40 hover:opacity-100 transition-opacity">
-                                <button onclick="modifyScore(${team.id}, -1)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 ${minusPy} ${minusText} whitespace-nowrap font-bold rounded-md md:rounded-lg shadow-[0_3px_0_rgb(51,65,85)]">-1</button>
-                                <button onclick="modifyScore(${team.id}, -10)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 ${minusPy} ${minusText} whitespace-nowrap font-bold rounded-md md:rounded-lg shadow-[0_3px_0_rgb(51,65,85)]">-10</button>
-                                <button onclick="modifyScore(${team.id}, -100)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 ${minusPy} ${minusText} whitespace-nowrap font-bold rounded-md md:rounded-lg shadow-[0_3px_0_rgb(51,65,85)]">-100</button>
+
+                            <div class="w-full max-w-sm flex flex-col gap-1 md:gap-2 z-10 shrink-0">
+                                <div class="flex gap-1 md:gap-2 w-full">
+                                    <button onclick="modifyScore(${team.id}, 1)" class="push-btn flex-1 text-white ${pyButton} ${btnText} whitespace-nowrap font-bold rounded-lg md:rounded-xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 4px 0 ${p.darkHex}">+1</button>
+                                    <button onclick="modifyScore(${team.id}, 10)" class="push-btn flex-1 text-white ${pyButton} ${btnText} whitespace-nowrap font-bold rounded-lg md:rounded-xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 4px 0 ${p.darkHex}">+10</button>
+                                    <button onclick="modifyScore(${team.id}, 100)" class="push-btn flex-1 text-white ${pyButton} ${btnText} whitespace-nowrap font-bold rounded-lg md:rounded-xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 4px 0 ${p.darkHex}">+100</button>
+                                </div>
+                                <div class="flex gap-1 md:gap-2 w-full opacity-40 hover:opacity-100 transition-opacity">
+                                    <button onclick="modifyScore(${team.id}, -1)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 ${minusPy} ${minusText} whitespace-nowrap font-bold rounded-md md:rounded-lg shadow-[0_3px_0_rgb(51,65,85)]">-1</button>
+                                    <button onclick="modifyScore(${team.id}, -10)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 ${minusPy} ${minusText} whitespace-nowrap font-bold rounded-md md:rounded-lg shadow-[0_3px_0_rgb(51,65,85)]">-10</button>
+                                    <button onclick="modifyScore(${team.id}, -100)" class="push-btn flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 ${minusPy} ${minusText} whitespace-nowrap font-bold rounded-md md:rounded-lg shadow-[0_3px_0_rgb(51,65,85)]">-100</button>
+                                </div>
                             </div>
                         </div>
                     </div>
