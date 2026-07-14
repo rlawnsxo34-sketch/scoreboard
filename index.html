@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>다중 팀 대형 스코어보드</title>
+    <title>다중 팀 스코어보드 & 타이머</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -11,7 +11,7 @@
 
         body {
             font-family: 'Noto Sans KR', sans-serif;
-            background-color: #0f172a; /* 어두운 배경 */
+            background-color: #0f172a;
             color: #f8fafc;
             overflow-x: hidden;
             min-height: 100vh;
@@ -23,7 +23,6 @@
             font-family: 'Black Han Sans', sans-serif;
         }
 
-        /* 점수 입력 필드 */
         .score-input {
             font-family: 'Black Han Sans', sans-serif;
             background: transparent;
@@ -42,57 +41,205 @@
             margin: 0;
         }
 
-        /* 버튼 눌림 효과 */
         .push-btn:active {
             transform: translateY(4px);
             box-shadow: 0 0px 0 0 transparent !important;
         }
 
-        /* 그리드 애니메이션 부드럽게 */
         #scoreboard-container {
             transition: all 0.3s ease;
         }
+
+        /* 타이머 관련 스타일 */
+        .timer-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            text-align: center;
+            width: 2.5ch;
+            -moz-appearance: textfield;
+        }
+        .timer-input::-webkit-outer-spin-button,
+        .timer-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        .timer-blink {
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; color: #ef4444; }
+            50% { opacity: 0.5; color: #f87171; }
+        }
     </style>
 </head>
-<body class="p-2 md:p-4 pt-20 md:pt-24 h-screen overflow-y-auto md:overflow-hidden flex flex-col">
+<body class="p-2 md:p-4 pt-[140px] md:pt-[100px] h-screen overflow-y-auto md:overflow-hidden flex flex-col">
 
-    <!-- 토스트 메시지 (alert 대체용) -->
-    <div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-full shadow-lg transform -translate-y-20 opacity-0 transition-all duration-300 z-[60] pointer-events-none font-bold text-center">
+    <!-- 토스트 메시지 -->
+    <div id="toast" class="fixed top-32 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-full shadow-lg transform -translate-y-20 opacity-0 transition-all duration-300 z-[60] pointer-events-none font-bold text-center">
         메시지
     </div>
 
-    <!-- 상단 컨트롤 패널 -->
-    <div class="fixed top-0 left-0 w-full p-4 flex justify-center gap-2 md:gap-4 z-50 bg-[#0f172a] border-b border-gray-800 shadow-xl">
-        <button onclick="removeTeam()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 px-4 md:px-6 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-2">
-            <span class="text-xl leading-none">-</span> 팀 삭제
-        </button>
-        <button onclick="resetScores()" class="bg-slate-700 hover:bg-slate-600 text-white py-2 px-6 md:px-8 rounded-full text-lg font-bold shadow-lg border border-slate-500 transition-colors">
-            0 : 0 초기화
-        </button>
-        <button onclick="addTeam()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 px-4 md:px-6 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-2">
-            <span class="text-xl leading-none">+</span> 팀 추가
-        </button>
+    <!-- 상단 컨트롤 패널 & 타이머 -->
+    <div class="fixed top-0 left-0 w-full z-50 bg-[#0f172a] border-b border-gray-800 shadow-xl flex flex-col md:flex-row items-center justify-between p-2 md:p-4 gap-4">
+        
+        <!-- 왼쪽: 팀 관리 -->
+        <div class="flex items-center gap-2 order-2 md:order-1">
+            <button onclick="removeTeam()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 px-3 md:py-2 md:px-5 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-1 text-sm md:text-base">
+                <span class="text-lg leading-none">-</span> 팀
+            </button>
+            <button onclick="addTeam()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 px-3 md:py-2 md:px-5 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-1 text-sm md:text-base">
+                <span class="text-lg leading-none">+</span> 팀
+            </button>
+            <button onclick="resetScores()" class="bg-slate-700 hover:bg-slate-600 text-white py-1.5 px-4 md:py-2 md:px-6 rounded-full font-bold shadow-lg border border-slate-500 transition-colors text-sm md:text-base ml-2">
+                점수 리셋
+            </button>
+        </div>
+
+        <!-- 중앙: 타이머 -->
+        <div class="flex items-center gap-3 bg-gray-900 px-4 md:px-6 py-2 rounded-2xl border border-gray-700 order-1 md:order-2">
+            <div id="timer-display" class="display-font text-4xl md:text-5xl text-yellow-400 flex items-center tracking-wider transition-colors">
+                <input type="number" id="timer-min" value="05" class="timer-input text-yellow-400 focus:bg-gray-800 focus:rounded" onclick="this.select()" onchange="formatTimerInput(this)" onblur="formatTimerInput(this)">
+                <span class="mx-1 pb-1">:</span>
+                <input type="number" id="timer-sec" value="00" class="timer-input text-yellow-400 focus:bg-gray-800 focus:rounded" onclick="this.select()" onchange="formatTimerInput(this, true)" onblur="formatTimerInput(this, true)">
+            </div>
+            <div class="flex gap-2 ml-2">
+                <button id="timer-toggle-btn" onclick="toggleTimer()" class="w-10 h-10 md:w-12 md:h-12 bg-yellow-600 hover:bg-yellow-500 rounded-full flex items-center justify-center text-white shadow-lg transition-colors">
+                    <!-- Play 아이콘 -->
+                    <svg id="icon-play" class="w-5 h-5 md:w-6 md:h-6 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg>
+                    <!-- Pause 아이콘 (기본 숨김) -->
+                    <svg id="icon-pause" class="w-5 h-5 md:w-6 md:h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z"></path></svg>
+                </button>
+                <button onclick="resetTimer()" class="w-10 h-10 md:w-12 md:h-12 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center text-white shadow-lg transition-colors">
+                    <!-- Stop/Reset 아이콘 -->
+                    <svg class="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 오른쪽: 빈 공간 (균형용) -->
+        <div class="hidden md:block w-[200px] order-3"></div>
     </div>
 
-    <!-- 스코어보드 메인 영역 (Grid로 반응형 배치) -->
-    <div id="scoreboard-container" class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-[1920px] mx-auto h-full">
-        <!-- JS로 팀 카드들이 생성되는 곳 -->
+    <!-- 스코어보드 메인 영역 -->
+    <div id="scoreboard-container" class="flex-1 w-full max-w-[1920px] mx-auto h-full grid gap-3 md:gap-6 auto-rows-fr grid-cols-1 md:grid-cols-2">
+        <!-- JS로 렌더링 -->
     </div>
 
     <script>
-        // 팀 색상 팔레트 정의 (팀이 추가될 때마다 순서대로 적용)
+        // --- 타이머 로직 ---
+        let timerInterval = null;
+        let isTimerRunning = false;
+        let initialTime = { min: 5, sec: 0 }; // 리셋용 저장값
+
+        const elMin = document.getElementById('timer-min');
+        const elSec = document.getElementById('timer-sec');
+        const displayContainer = document.getElementById('timer-display');
+        const iconPlay = document.getElementById('icon-play');
+        const iconPause = document.getElementById('icon-pause');
+        const toggleBtn = document.getElementById('timer-toggle-btn');
+
+        // 입력값 포맷팅 (05, 00 형태로)
+        function formatTimerInput(element, isSeconds = false) {
+            let val = parseInt(element.value, 10);
+            if (isNaN(val) || val < 0) val = 0;
+            if (isSeconds && val > 59) val = 59;
+            element.value = val.toString().padStart(2, '0');
+            
+            if (!isTimerRunning) {
+                initialTime.min = parseInt(elMin.value, 10);
+                initialTime.sec = parseInt(elSec.value, 10);
+            }
+        }
+
+        function toggleTimer() {
+            if (isTimerRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        }
+
+        function startTimer() {
+            let m = parseInt(elMin.value, 10);
+            let s = parseInt(elSec.value, 10);
+            let totalSeconds = m * 60 + s;
+
+            if (totalSeconds <= 0) return;
+
+            isTimerRunning = true;
+            elMin.disabled = true;
+            elSec.disabled = true;
+            
+            // 아이콘 변경 및 색상 복구
+            iconPlay.classList.add('hidden');
+            iconPause.classList.remove('hidden');
+            toggleBtn.classList.replace('bg-yellow-600', 'bg-red-600');
+            toggleBtn.classList.replace('hover:bg-yellow-500', 'hover:bg-red-500');
+            displayContainer.classList.remove('timer-blink');
+            elMin.classList.remove('text-red-500');
+            elSec.classList.remove('text-red-500');
+            elMin.classList.add('text-yellow-400');
+            elSec.classList.add('text-yellow-400');
+
+            timerInterval = setInterval(() => {
+                totalSeconds--;
+                
+                let rm = Math.floor(totalSeconds / 60);
+                let rs = totalSeconds % 60;
+                
+                elMin.value = rm.toString().padStart(2, '0');
+                elSec.value = rs.toString().padStart(2, '0');
+
+                if (totalSeconds <= 0) {
+                    timerFinished();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            isTimerRunning = false;
+            clearInterval(timerInterval);
+            elMin.disabled = false;
+            elSec.disabled = false;
+            
+            // 아이콘 변경
+            iconPause.classList.add('hidden');
+            iconPlay.classList.remove('hidden');
+            toggleBtn.classList.replace('bg-red-600', 'bg-yellow-600');
+            toggleBtn.classList.replace('hover:bg-red-500', 'hover:bg-yellow-500');
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            elMin.value = initialTime.min.toString().padStart(2, '0');
+            elSec.value = initialTime.sec.toString().padStart(2, '0');
+            displayContainer.classList.remove('timer-blink');
+            elMin.classList.replace('text-red-500', 'text-yellow-400');
+            elSec.classList.replace('text-red-500', 'text-yellow-400');
+        }
+
+        function timerFinished() {
+            pauseTimer();
+            displayContainer.classList.add('timer-blink');
+            elMin.classList.replace('text-yellow-400', 'text-red-500');
+            elSec.classList.replace('text-yellow-400', 'text-red-500');
+            showToast('시간이 종료되었습니다!');
+        }
+
+        // --- 기존 스코어보드 로직 ---
         const palettes = [
-            { hex: '#ef4444', darkHex: '#991b1b', bgHex: 'rgba(239, 68, 68, 0.05)' },   // Red (포이팀)
-            { hex: '#3b82f6', darkHex: '#1e40af', bgHex: 'rgba(59, 130, 246, 0.05)' },   // Blue (마리팀)
-            { hex: '#22c55e', darkHex: '#166534', bgHex: 'rgba(34, 197, 94, 0.05)' },    // Green
-            { hex: '#eab308', darkHex: '#854d0e', bgHex: 'rgba(234, 179, 8, 0.05)' },    // Yellow
-            { hex: '#a855f7', darkHex: '#6b21a8', bgHex: 'rgba(168, 85, 247, 0.05)' },   // Purple
-            { hex: '#f97316', darkHex: '#9a3412', bgHex: 'rgba(249, 115, 22, 0.05)' },   // Orange
-            { hex: '#ec4899', darkHex: '#9d174d', bgHex: 'rgba(236, 72, 153, 0.05)' },   // Pink
-            { hex: '#06b6d4', darkHex: '#155e75', bgHex: 'rgba(6, 182, 212, 0.05)' }     // Cyan
+            { hex: '#ef4444', darkHex: '#991b1b', bgHex: 'rgba(239, 68, 68, 0.05)' },
+            { hex: '#3b82f6', darkHex: '#1e40af', bgHex: 'rgba(59, 130, 246, 0.05)' },
+            { hex: '#22c55e', darkHex: '#166534', bgHex: 'rgba(34, 197, 94, 0.05)' },
+            { hex: '#eab308', darkHex: '#854d0e', bgHex: 'rgba(234, 179, 8, 0.05)' },
+            { hex: '#a855f7', darkHex: '#6b21a8', bgHex: 'rgba(168, 85, 247, 0.05)' },
+            { hex: '#f97316', darkHex: '#9a3412', bgHex: 'rgba(249, 115, 22, 0.05)' },
+            { hex: '#ec4899', darkHex: '#9d174d', bgHex: 'rgba(236, 72, 153, 0.05)' },
+            { hex: '#06b6d4', darkHex: '#155e75', bgHex: 'rgba(6, 182, 212, 0.05)' }
         ];
 
-        // 초기 팀 데이터 (2팀 기본)
         let teams = [
             { id: 1, name: '포이팀', score: 0 },
             { id: 2, name: '마리팀', score: 0 }
@@ -100,7 +247,6 @@
 
         let nextTeamId = 3;
 
-        // 토스트 메시지 표시 함수 (코드 안정성 및 사용자 경험 향상)
         function showToast(message) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -112,31 +258,26 @@
             }, 2500);
         }
 
-        // UI 렌더링 함수
         function renderTeams() {
             const container = document.getElementById('scoreboard-container');
             container.innerHTML = '';
 
-            const isDense = teams.length > 4; // 5팀 이상일 경우 화면 분할(Dense) 모드
+            const isDense = teams.length > 4;
 
-            // 팀 개수에 따라 그리드 열(Column) 개수 및 화면 높이 꽉 차는 비율(auto-rows-fr) 동적 조정
             let gridClasses = "flex-1 w-full max-w-[1920px] mx-auto h-full grid gap-3 md:gap-6 auto-rows-fr ";
             if (teams.length === 1) gridClasses += "grid-cols-1";
             else if (teams.length === 2) gridClasses += "grid-cols-1 md:grid-cols-2";
             else if (teams.length === 3) gridClasses += "grid-cols-1 md:grid-cols-3";
             else if (teams.length === 4) gridClasses += "grid-cols-1 md:grid-cols-2 lg:grid-cols-4";
-            else if (teams.length <= 6) gridClasses += "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"; // 5~6팀: 2줄 3칸
-            else gridClasses += "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"; // 7~8팀: 2줄 4칸
+            else if (teams.length <= 6) gridClasses += "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
+            else gridClasses += "grid-cols-1 md:grid-cols-2 lg:grid-cols-4";
             
             container.className = gridClasses;
 
             teams.forEach((team, index) => {
-                const p = palettes[index % palettes.length]; // 팔레트 순환 배정
-                
-                // 팀 기본 이름 설정
+                const p = palettes[index % palettes.length];
                 const defaultName = index === 0 ? '포이팀' : (index === 1 ? '마리팀' : `팀 ${index + 1}`);
 
-                // 팀 갯수가 많을 때(5개 이상) 한 화면에 다 들어가도록 UI 폰트, 여백, 버튼 크기를 동적으로 축소 (버튼 깨짐 방지 비율 조정)
                 const cardPadding = isDense ? 'p-2 md:p-3' : 'p-6';
                 const nameSize = isDense ? 'text-2xl md:text-3xl lg:text-4xl' : 'text-4xl md:text-5xl lg:text-6xl';
                 const scoreSize = isDense ? 'text-[3.5rem] sm:text-[4rem] lg:text-[5.5rem]' : 'text-[5rem] sm:text-[10rem] lg:text-[13rem]';
@@ -150,7 +291,6 @@
                     <div class="flex-1 flex flex-col justify-between items-center ${cardPadding} rounded-3xl relative group border-t-8 shadow-2xl overflow-hidden min-h-[150px]"
                          style="background-color: #1e293b; border-color: ${p.hex}; box-shadow: inset 0 0 100px ${p.bgHex};">
                         
-                        <!-- 팀 이름 입력란 -->
                         <input type="text" value="${team.name}" 
                                placeholder="${defaultName}"
                                class="display-font ${nameSize} text-center bg-transparent border-b-4 border-transparent focus:outline-none w-11/12 py-1 z-10 transition-colors"
@@ -159,7 +299,6 @@
                                onblur="handleNameBlur(${team.id}, this, '${defaultName}')"
                                onchange="updateTeamName(${team.id}, this.value)">
 
-                        <!-- 점수 표시 및 입력란 -->
                         <div class="flex-1 flex items-center justify-center w-full z-10 ${myMargin}">
                             <input type="number" id="score-input-${team.id}" value="${team.score}"
                                    class="score-input text-white ${scoreSize}"
@@ -168,7 +307,6 @@
                                    onchange="updateScoreDirect(${team.id}, this.value)">
                         </div>
 
-                        <!-- 점수 조작 버튼 -->
                         <div class="w-full max-w-sm flex flex-col gap-1 md:gap-2 z-10 shrink-0">
                             <div class="flex gap-1 md:gap-2 w-full">
                                 <button onclick="modifyScore(${team.id}, 1)" class="push-btn flex-1 text-white ${pyButton} ${btnText} whitespace-nowrap font-bold rounded-lg md:rounded-xl transition-all" style="background-color: ${p.hex}; box-shadow: 0 4px 0 ${p.darkHex}">+1</button>
@@ -187,23 +325,20 @@
             });
         }
 
-        // 버튼으로 점수 변경
         function modifyScore(id, amount) {
             const team = teams.find(t => t.id === id);
             if (team) {
                 team.score += amount;
-                if (team.score < 0) team.score = 0; // 마이너스 방지 원할시 유지
+                if (team.score < 0) team.score = 0; 
                 
                 const inputElement = document.getElementById(`score-input-${id}`);
                 inputElement.value = team.score;
                 
-                // 스케일업 애니메이션
                 inputElement.style.transform = 'scale(1.1)';
                 setTimeout(() => inputElement.style.transform = 'scale(1)', 150);
             }
         }
 
-        // 직접 입력으로 점수 변경
         function updateScoreDirect(id, value) {
             const team = teams.find(t => t.id === id);
             let parsed = parseInt(value, 10);
@@ -216,20 +351,17 @@
             }
         }
 
-        // 점수 입력창 포커스 아웃 처리
         function handleScoreBlur(id, inputElement) {
             if (inputElement.value.trim() === '' || isNaN(inputElement.value)) {
                 updateScoreDirect(id, 0);
             }
         }
 
-        // 팀명 변경
         function updateTeamName(id, value) {
             const team = teams.find(t => t.id === id);
             if (team) team.name = value;
         }
 
-        // 팀명 포커스 아웃 (비어있으면 기본값 복구)
         function handleNameBlur(id, inputElement, defaultName) {
             inputElement.style.borderBottomColor = 'rgba(255,255,255,0.05)';
             if (inputElement.value.trim() === '') {
@@ -238,7 +370,6 @@
             }
         }
 
-        // 팀 추가 (최대 8팀 제한)
         function addTeam() {
             if (teams.length >= 8) {
                 showToast('팀은 최대 8팀까지만 추가 가능합니다.');
@@ -248,7 +379,6 @@
             renderTeams();
         }
 
-        // 팀 삭제 (최소 1팀 유지)
         function removeTeam() {
             if (teams.length > 1) {
                 teams.pop();
@@ -258,13 +388,12 @@
             }
         }
 
-        // 모든 점수 초기화
         function resetScores() {
             teams.forEach(t => t.score = 0);
             renderTeams();
+            showToast('점수가 리셋되었습니다.');
         }
 
-        // 초기 화면 렌더링
         window.onload = renderTeams;
 
     </script>
