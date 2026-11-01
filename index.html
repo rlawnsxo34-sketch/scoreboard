@@ -120,9 +120,9 @@
     </div>
 
     <!-- 상단 컨트롤 패널 & 타이머 -->
-    <div class="fixed top-0 left-0 w-full z-50 bg-[#0f172a] border-b border-gray-800 shadow-xl flex flex-col md:flex-row items-center justify-between p-2 md:p-4 gap-2 md:gap-4">
+    <div class="fixed top-0 left-0 w-full z-50 bg-[#0f172a] border-b border-gray-800 shadow-xl flex flex-wrap md:flex-nowrap items-center justify-between p-2 md:p-4 gap-2 md:gap-4">
         <!-- 왼쪽: 팀 관리 및 종료 -->
-        <div class="flex items-center gap-1 sm:gap-2 order-2 md:order-1 w-full md:w-auto justify-center">
+        <div class="flex items-center gap-1 sm:gap-2 order-2 md:order-1 justify-center">
             <button onclick="removeTeam()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 px-3 md:py-2 md:px-4 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-1 text-xs sm:text-sm md:text-base">
                 <span class="text-base md:text-lg leading-none">-</span> 팀
             </button>
@@ -166,8 +166,20 @@
             </div>
         </div>
 
-        <!-- 오른쪽: 빈 공간 (균형용) -->
-        <div class="hidden md:block w-[200px] order-3"></div>
+        <!-- 오른쪽: 전체화면 버튼 -->
+        <div class="flex items-center justify-end md:w-[200px] order-3">
+            <button onclick="toggleFullscreen()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 px-3 md:py-2 md:px-4 rounded-full font-bold shadow-lg border border-gray-600 transition-colors flex items-center gap-1.5 text-xs sm:text-sm md:text-base" title="전체화면 전환">
+                <!-- 전체화면 진입 아이콘 -->
+                <svg id="icon-fs-enter" class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                </svg>
+                <!-- 전체화면 종료 아이콘 -->
+                <svg id="icon-fs-exit" class="w-4 h-4 md:w-5 md:h-5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"></path>
+                </svg>
+                <span id="text-fs" class="hidden sm:inline">전체화면</span>
+            </button>
+        </div>
     </div>
 
     <!-- 스코어보드 메인 영역 (배율 및 오버플로우 안정성 개선) -->
@@ -184,7 +196,7 @@
         // 효과음 함수
         function playSound(id) {
             const sound = document.getElementById(id);
-            if(sound) {
+            if (sound) {
                 sound.currentTime = 0;
                 sound.play().catch(e => console.log('Audio play failed:', e));
             }
@@ -321,11 +333,19 @@
             { hex: '#06b6d4', darkHex: '#155e75', bgHex: 'rgba(6, 182, 212, 0.05)' }
         ];
 
-        // 로컬 스토리지에서 데이터 불러오기 또는 기본값 설정
-        let teams = JSON.parse(localStorage.getItem('scoreboard_teams')) || [
+        // 로컬 스토리지에서 안전하게 데이터 불러오기
+        let teams = [
             { id: 1, name: '포이팀', score: 0 },
             { id: 2, name: '마리팀', score: 0 }
         ];
+        try {
+            const saved = JSON.parse(localStorage.getItem('scoreboard_teams'));
+            if (Array.isArray(saved) && saved.length > 0) {
+                teams = saved;
+            }
+        } catch (e) {
+            console.warn('LocalStorage 로드 실패:', e);
+        }
 
         // ID 중복 방지를 위한 nextTeamId 계산
         let nextTeamId = teams.length > 0 ? Math.max(...teams.map(t => t.id)) + 1 : 3;
@@ -334,7 +354,11 @@
 
         // 데이터 자동 저장 함수
         function saveTeamsToStorage() {
-            localStorage.setItem('scoreboard_teams', JSON.stringify(teams));
+            try {
+                localStorage.setItem('scoreboard_teams', JSON.stringify(teams));
+            } catch (e) {
+                console.warn('LocalStorage 저장 실패:', e);
+            }
         }
 
         function showToast(message) {
@@ -354,13 +378,13 @@
 
         // 게임 종료 및 축하 효과
         function finishGame() {
-            if(teams.length === 0) return;
+            if (teams.length === 0) return;
             
             // 최고 점수 찾기
             const maxScore = Math.max(...teams.map(t => t.score));
             const winners = teams.filter(t => t.score === maxScore);
             
-            if(maxScore === 0) {
+            if (maxScore === 0) {
                 showToast('아직 점수가 없습니다!');
                 return;
             }
@@ -372,29 +396,31 @@
             showToast(`🎉 ${winnerNames} 우승! 🎉`);
 
             // 화려한 꽃가루(Confetti) 이펙트 발동
-            var duration = 3000;
-            var end = Date.now() + duration;
+            if (typeof confetti === 'function') {
+                var duration = 3000;
+                var end = Date.now() + duration;
 
-            (function frame() {
-                confetti({
-                    particleCount: 5,
-                    angle: 60,
-                    spread: 55,
-                    origin: { x: 0 },
-                    colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff']
-                });
-                confetti({
-                    particleCount: 5,
-                    angle: 120,
-                    spread: 55,
-                    origin: { x: 1 },
-                    colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff']
-                });
+                (function frame() {
+                    confetti({
+                        particleCount: 5,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0 },
+                        colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff']
+                    });
+                    confetti({
+                        particleCount: 5,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 1 },
+                        colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff']
+                    });
 
-                if (Date.now() < end) {
-                    requestAnimationFrame(frame);
-                }
-            }());
+                    if (Date.now() < end) {
+                        requestAnimationFrame(frame);
+                    }
+                }());
+            }
         }
 
         function renderTeams() {
@@ -428,7 +454,6 @@
                 const minusText = isDense ? 'text-xs md:text-sm' : 'text-sm sm:text-base md:text-xl';
                 const myMargin = isDense ? 'my-0' : 'my-1 md:my-2';
 
-                // 내부 패딩을 조정하여 헤더 영역 확보, 모바일에서 카드가 찌그러지지 않도록 min-h-[200px] 보장
                 const cardHTML = `
                     <div class="flex-1 flex flex-col justify-between items-center rounded-3xl relative group shadow-2xl overflow-hidden min-h-[200px] md:min-h-[150px] border border-gray-700"
                          style="background-color: #1e293b; box-shadow: inset 0 0 100px ${p.bgHex};">
@@ -488,9 +513,9 @@
             
             document.body.appendChild(floatEl);
             
-            // 애니메이션 끝나면 DOM에서 제거
+            // 애니메이션 끝나면 DOM에서 안전하게 제거
             setTimeout(() => {
-                document.body.removeChild(floatEl);
+                floatEl.remove();
             }, 800);
         }
 
@@ -545,6 +570,15 @@
             }
         }
 
+        // 팀명 포커스 아웃 시 밑줄 복구 및 빈칸이면 기본 이름(포이팀, 마리팀 등)으로 복원
+        function handleNameBlur(id, inputElement, defaultName) {
+            inputElement.style.borderBottomColor = 'rgba(255,255,255,0.05)';
+            if (inputElement.value.trim() === '') {
+                inputElement.value = defaultName;
+                updateTeamName(id, defaultName);
+            }
+        }
+
         function addTeam() {
             if (teams.length >= 8) {
                 showToast('팀은 최대 8팀까지만 추가 가능합니다.');
@@ -571,6 +605,50 @@
             renderTeams();
             showToast('점수가 리셋되었습니다.');
         }
+
+        // --- 전체화면 전환 로직 ---
+        function toggleFullscreen() {
+            const docEl = document.documentElement;
+            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+
+            if (!isFullscreen) {
+                const requestFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
+                if (requestFs) {
+                    requestFs.call(docEl).catch(() => {
+                        showToast('전체화면 전환이 제한된 환경입니다.');
+                    });
+                } else {
+                    showToast('이 브라우저는 전체화면을 지원하지 않습니다.');
+                }
+            } else {
+                const exitFs = document.exitFullscreen || document.webkitExitFullscreen;
+                if (exitFs) {
+                    exitFs.call(document).catch(() => {});
+                }
+            }
+        }
+
+        function updateFullscreenUI() {
+            const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            const enterIcon = document.getElementById('icon-fs-enter');
+            const exitIcon = document.getElementById('icon-fs-exit');
+            const fsText = document.getElementById('text-fs');
+
+            if (enterIcon && exitIcon && fsText) {
+                if (isFullscreen) {
+                    enterIcon.classList.add('hidden');
+                    exitIcon.classList.remove('hidden');
+                    fsText.textContent = '창모드';
+                } else {
+                    enterIcon.classList.remove('hidden');
+                    exitIcon.classList.add('hidden');
+                    fsText.textContent = '전체화면';
+                }
+            }
+        }
+
+        document.addEventListener('fullscreenchange', updateFullscreenUI);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
 
         window.onload = renderTeams;
 
